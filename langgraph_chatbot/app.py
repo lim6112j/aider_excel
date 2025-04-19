@@ -21,22 +21,46 @@ def process_excel(file):
         return "No file uploaded.", None
     
     try:
-        # Read the Excel file
-        df = pd.read_excel(file.name)
+        # Read the Excel file - check for multiple sheets
+        excel_file = pd.ExcelFile(file.name)
+        sheet_names = excel_file.sheet_names
         
-        # Generate a summary of the Excel file
-        num_rows, num_cols = df.shape
-        columns = df.columns.tolist()
-        
-        summary = f"Excel file uploaded successfully!\n\n"
-        summary += f"File contains {num_rows} rows and {num_cols} columns.\n"
-        summary += f"Columns: {', '.join(columns)}\n\n"
-        
-        # Add a preview of the data
-        summary += "Preview of the data:\n"
-        summary += df.head(5).to_string()
-        
-        return summary, df
+        if len(sheet_names) > 1:
+            # Multiple sheets - read all into a dictionary of DataFrames
+            dfs = {sheet_name: pd.read_excel(file.name, sheet_name=sheet_name) 
+                   for sheet_name in sheet_names}
+            
+            # Generate a summary of the Excel file
+            summary = f"Excel file uploaded successfully with {len(sheet_names)} sheets!\n\n"
+            summary += f"Sheets: {', '.join(sheet_names)}\n\n"
+            
+            # Add a brief preview of each sheet
+            for sheet_name, df in dfs.items():
+                num_rows, num_cols = df.shape
+                summary += f"Sheet '{sheet_name}':\n"
+                summary += f"  - {num_rows} rows × {num_cols} columns\n"
+                summary += f"  - Columns: {', '.join(df.columns.tolist())}\n"
+                summary += f"  - Preview (first 3 rows):\n"
+                summary += df.head(3).to_string() + "\n\n"
+            
+            return summary, dfs
+        else:
+            # Single sheet - read as a DataFrame
+            df = pd.read_excel(file.name)
+            
+            # Generate a summary of the Excel file
+            num_rows, num_cols = df.shape
+            columns = df.columns.tolist()
+            
+            summary = f"Excel file uploaded successfully!\n\n"
+            summary += f"File contains {num_rows} rows × {num_cols} columns.\n"
+            summary += f"Columns: {', '.join(columns)}\n\n"
+            
+            # Add a preview of the data
+            summary += "Preview of the data:\n"
+            summary += df.head(5).to_string()
+            
+            return summary, df
     
     except Exception as e:
         return f"Error processing Excel file: {str(e)}", None
