@@ -105,10 +105,11 @@ demo = gr.ChatInterface(
     title="Excel Settlement Calculator Assistant",
     description="Ask me about Excel formulas, settlement calculations, or financial spreadsheets!",
     examples=[
-        "How do I calculate a pro-rata settlement distribution in Excel?", 
-        "What formula should I use to calculate interest on outstanding settlements?",
-        "How can I set up a spreadsheet to track multiple settlement payments?",
-        "What's the best way to reconcile settlement accounts in Excel?"
+        # Format: [message, file]
+        ["How do I calculate a pro-rata settlement distribution in Excel?", None],
+        ["What formula should I use to calculate interest on outstanding settlements?", None],
+        ["How can I set up a spreadsheet to track multiple settlement payments?", None],
+        ["What's the best way to reconcile settlement accounts in Excel?", None]
     ],
     additional_inputs=[
         gr.File(
