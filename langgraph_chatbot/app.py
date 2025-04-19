@@ -57,13 +57,14 @@ def respond(message, history, file=None):
         file_info = process_excel(file)
         # Add file information to the message
         message = f"{message}\n\nI've uploaded an Excel file with the following information:\n{file_info}"
+    
     # Convert Gradio history to our ChatState format
     messages = []
-    for human_msg, ai_msg in history:
-        if human_msg:
-            messages.append(ChatMessage(role="user", content=human_msg))
-        if ai_msg:
-            messages.append(ChatMessage(role="assistant", content=ai_msg))
+    for msg in history:
+        if msg["role"] == "user":
+            messages.append(ChatMessage(role="user", content=msg["content"]))
+        elif msg["role"] == "assistant":
+            messages.append(ChatMessage(role="assistant", content=msg["content"]))
     
     # Add the current message
     messages.append(ChatMessage(role="user", content=message))
@@ -95,7 +96,10 @@ with gr.Blocks() as demo:
     
     with gr.Row():
         with gr.Column(scale=4):
-            chatbot = gr.Chatbot(height=500)
+            chatbot = gr.Chatbot(
+                height=500,
+                type='messages'  # Add this parameter to fix the warning
+            )
             
             with gr.Row():
                 msg = gr.Textbox(
