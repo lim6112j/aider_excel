@@ -310,10 +310,11 @@ def chatbot_node(state: ChatState) -> ChatState:
     Provide clear, step-by-step instructions when explaining formulas or calculations.
     When appropriate, show the actual Excel formula syntax that would be used.
     If you need specific numbers or details to provide an accurate calculation, ask for them.
+
+    `정책` work-sheets와 `매출` work-sheets는 엑셀파일마다 이름이 다를 수 있으므로 모를때에는 예측하지말고 유저에게 물어본다
     정산(settlements) 작업을 요청받으면 `매출` 시트의 각 데이터를 하나씩 처리한다
     이때,  각 판매 상품에 대한 수수료 정책은 `정책`시트에서 매칭되는 데이터를 사용한다
     이때,  매칭되는 상품을 찾지 못하면 유저에게 물어본다
-    `정책`시트와 `매출`시트는 엑셀파일마다 다를 수 있으므로 모를때에는  유저에게 물어본다
     """
 
     # Format messages for the LLM, including the system prompt
