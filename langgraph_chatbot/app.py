@@ -87,7 +87,8 @@ def respond(message, history, file=None):
     else:
         bot_response = "Could not retrieve response."
     
-    return bot_response
+    # Return in the format expected by Gradio chatbot with type='messages'
+    return {"role": "assistant", "content": bot_response}
 
 # Create Gradio interface with additional components
 with gr.Blocks() as demo:
