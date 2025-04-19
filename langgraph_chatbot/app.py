@@ -61,10 +61,19 @@ def respond(message, history, file=None):
     # Convert Gradio history to our ChatState format
     messages = []
     for msg in history:
-        if msg["role"] == "user":
-            messages.append(ChatMessage(role="user", content=msg["content"]))
-        elif msg["role"] == "assistant":
-            messages.append(ChatMessage(role="assistant", content=msg["content"]))
+        # Handle both possible formats of history
+        if isinstance(msg, dict) and "role" in msg and "content" in msg:
+            # Already in the right format
+            role = msg["role"]
+            content = msg["content"]
+            messages.append(ChatMessage(role=role, content=content))
+        elif isinstance(msg, list) and len(msg) == 2:
+            # Old tuple format [user_msg, assistant_msg]
+            if msg[0]:  # User message
+                messages.append(ChatMessage(role="user", content=msg[0]))
+            if msg[1]:  # Assistant message
+                messages.append(ChatMessage(role="assistant", content=msg[1]))
+            continue
     
     # Add the current message
     messages.append(ChatMessage(role="user", content=message))
@@ -78,8 +87,8 @@ def respond(message, history, file=None):
         bot_response = result["current_response"]
     elif "messages" in result:
         # Get the last assistant message
-        messages = result["messages"]
-        assistant_messages = [msg for msg in messages if msg.role == "assistant"]
+        result_messages = result["messages"]
+        assistant_messages = [msg for msg in result_messages if msg.role == "assistant"]
         if assistant_messages:
             bot_response = assistant_messages[-1].content
         else:
@@ -88,69 +97,27 @@ def respond(message, history, file=None):
         bot_response = "Could not retrieve response."
     
     # Return in the format expected by Gradio chatbot with type='messages'
-    return {"role": "assistant", "content": bot_response}
+    return bot_response
 
-# Create Gradio interface with additional components
-with gr.Blocks() as demo:
-    gr.Markdown("# Excel Settlement Calculator Assistant")
-    gr.Markdown("Ask me about Excel formulas, settlement calculations, or financial spreadsheets!")
-    
-    with gr.Row():
-        with gr.Column(scale=4):
-            chatbot = gr.Chatbot(
-                height=500,
-                type='messages'  # Add this parameter to fix the warning
-            )
-            
-            with gr.Row():
-                msg = gr.Textbox(
-                    placeholder="Type your message here...",
-                    container=False,
-                    scale=8
-                )
-                file_upload = gr.File(
-                    file_types=[".xlsx", ".xls", ".csv"],
-                    label="Upload Excel File",
-                    scale=2
-                )
-            
-            with gr.Row():
-                submit = gr.Button("Send")
-                clear = gr.Button("Clear")
-    
-    with gr.Accordion("Example Questions", open=False):
-        examples = gr.Examples(
-            examples=[
-                "How do I calculate a pro-rata settlement distribution in Excel?", 
-                "What formula should I use to calculate interest on outstanding settlements?",
-                "How can I set up a spreadsheet to track multiple settlement payments?",
-                "What's the best way to reconcile settlement accounts in Excel?"
-            ],
-            inputs=msg
+# Create Gradio interface with ChatInterface
+demo = gr.ChatInterface(
+    fn=respond,
+    title="Excel Settlement Calculator Assistant",
+    description="Ask me about Excel formulas, settlement calculations, or financial spreadsheets!",
+    examples=[
+        "How do I calculate a pro-rata settlement distribution in Excel?", 
+        "What formula should I use to calculate interest on outstanding settlements?",
+        "How can I set up a spreadsheet to track multiple settlement payments?",
+        "What's the best way to reconcile settlement accounts in Excel?"
+    ],
+    additional_inputs=[
+        gr.File(
+            file_types=[".xlsx", ".xls", ".csv"],
+            label="Upload Excel File"
         )
-    
-    # Set up event handlers
-    submit_event = submit.click(
-        fn=respond,
-        inputs=[msg, chatbot, file_upload],
-        outputs=chatbot
-    ).then(
-        fn=lambda: (None, None),  # Clear message and file upload after sending
-        outputs=[msg, file_upload]
-    )
-    
-    # Also trigger on Enter key
-    msg.submit(
-        fn=respond,
-        inputs=[msg, chatbot, file_upload],
-        outputs=chatbot
-    ).then(
-        fn=lambda: (None, None),
-        outputs=[msg, file_upload]
-    )
-    
-    # Clear button functionality
-    clear.click(lambda: None, None, chatbot)
+    ],
+    theme="soft"
+)
 
 # Launch the app
 if __name__ == "__main__":
