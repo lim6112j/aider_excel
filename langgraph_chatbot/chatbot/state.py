@@ -9,8 +9,8 @@ class ChatMessage(BaseModel):
 
 
 class SettlementSheets(BaseModel):
-    sales: str
-    policy: str
+    sales: Optional[str] = None
+    policy: Optional[str] = None
 
 
 class ChatState(BaseModel):
@@ -19,4 +19,4 @@ class ChatState(BaseModel):
     uploaded_file_data: Optional[Any] = None
     excel_analysis_result: Optional[str] = None
     excel_formula: Optional[str] = None
-    settlements_sheets: Dict[SettlementSheets] = None
+    settlements_sheets: Optional[Dict[str, str]] = None

@@ -69,10 +69,16 @@ def respond(message, history, file=None):
     # Process file if uploaded
     file_info = ""
     df = None
+    sheet_names = []
+    
     if file is not None:
         file_info, df = process_excel(file)
         # Add file information to the message
         message = f"{message}\n\nI've uploaded an Excel file with the following information:\n{file_info}"
+        
+        # Extract sheet names if it's a dictionary of DataFrames
+        if isinstance(df, dict):
+            sheet_names = list(df.keys())
     
     # Convert Gradio history to our ChatState format
     messages = []
@@ -94,8 +100,61 @@ def respond(message, history, file=None):
     # Add the current message
     messages.append(ChatMessage(role="user", content=message))
     
+    # Check if the user is identifying sheets
+    settlements_sheets = None
+    if file is not None and sheet_names:
+        # Look for sheet identification in the message
+        message_lower = message.lower()
+        
+        # Initialize dictionaries to store potential matches
+        sales_matches = {}
+        policy_matches = {}
+        
+        # Check for sales sheet identification
+        sales_keywords = ["sales", "sales sheet", "판매", "판매 시트", "처리일"]
+        for keyword in sales_keywords:
+            if keyword in message_lower:
+                # Look for sheet names mentioned near the keyword
+                for sheet in sheet_names:
+                    if sheet.lower() in message_lower:
+                        # Calculate proximity (simple version: are they in the same sentence?)
+                        sentences = message_lower.split('.')
+                        for sentence in sentences:
+                            if keyword in sentence and sheet.lower() in sentence:
+                                sales_matches[sheet] = sales_matches.get(sheet, 0) + 1
+        
+        # Check for policy sheet identification
+        policy_keywords = ["policy", "policy sheet", "정책", "정책 시트", "번들결합분류"]
+        for keyword in policy_keywords:
+            if keyword in message_lower:
+                # Look for sheet names mentioned near the keyword
+                for sheet in sheet_names:
+                    if sheet.lower() in message_lower:
+                        # Calculate proximity
+                        sentences = message_lower.split('.')
+                        for sentence in sentences:
+                            if keyword in sentence and sheet.lower() in sentence:
+                                policy_matches[sheet] = policy_matches.get(sheet, 0) + 1
+        
+        # Determine the most likely sheets
+        sales_sheet = max(sales_matches.items(), key=lambda x: x[1])[0] if sales_matches else None
+        policy_sheet = max(policy_matches.items(), key=lambda x: x[1])[0] if policy_matches else None
+        
+        # If sheets were identified, create the SettlementSheets object
+        if sales_sheet or policy_sheet:
+            from chatbot.state import SettlementSheets
+            settlements_sheets = {}
+            if sales_sheet:
+                settlements_sheets["sales"] = sales_sheet
+            if policy_sheet:
+                settlements_sheets["policy"] = policy_sheet
+    
     # Create state and invoke graph
-    current_state = ChatState(messages=messages, uploaded_file_data=df)
+    current_state = ChatState(
+        messages=messages, 
+        uploaded_file_data=df,
+        settlements_sheets=settlements_sheets
+    )
     result = graph.invoke(current_state)
     
     # Extract response
