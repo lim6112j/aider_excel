@@ -50,10 +50,15 @@ def respond(message, history):
 demo = gr.ChatInterface(
     respond,
     chatbot=gr.Chatbot(height=600),
-    title="LangGraph Chatbot",
-    description="Ask me anything!",
+    title="Excel Settlement Calculator Assistant",
+    description="Ask me about Excel formulas, settlement calculations, or financial spreadsheets!",
     theme="soft",
-    examples=["Hello, how are you?", "What can you help me with?", "Tell me a joke."],
+    examples=[
+        "How do I calculate a pro-rata settlement distribution in Excel?", 
+        "What formula should I use to calculate interest on outstanding settlements?",
+        "How can I set up a spreadsheet to track multiple settlement payments?",
+        "What's the best way to reconcile settlement accounts in Excel?"
+    ],
     cache_examples=False,
 )
 
