@@ -30,11 +30,25 @@ def main():
         # Process through the graph
         result = graph.invoke(current_state)
         
-        # Update state - extract the actual state from the result
-        state = result["state"]  # Access the state from the result dictionary
+        # Debug the result structure
+        print(f"Debug - Result type: {type(result)}")
+        print(f"Debug - Result keys: {result.keys() if hasattr(result, 'keys') else 'No keys method'}")
+        
+        # Try to extract the state based on the actual structure
+        # For now, let's assume the result itself is the state
+        state = result
         
         # Display response
-        print(f"Bot: {state.current_response}")
+        if hasattr(state, 'current_response'):
+            print(f"Bot: {state.current_response}")
+        else:
+            print("Bot response not found in expected format.")
+            # Try to find messages in the result
+            if hasattr(state, 'messages') and state.messages:
+                # Get the last assistant message
+                assistant_messages = [msg for msg in state.messages if msg.role == "assistant"]
+                if assistant_messages:
+                    print(f"Bot: {assistant_messages[-1].content}")
 
 if __name__ == "__main__":
     main()
