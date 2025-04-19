@@ -30,8 +30,8 @@ def main():
         # Process through the graph
         result = graph.invoke(current_state)
         
-        # Update state
-        state = result
+        # Update state - extract the actual state from the result
+        state = result["state"]  # Access the state from the result dictionary
         
         # Display response
         print(f"Bot: {state.current_response}")
