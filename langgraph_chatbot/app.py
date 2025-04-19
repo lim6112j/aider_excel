@@ -3,6 +3,7 @@ import gradio as gr
 import pandas as pd
 from chatbot.graph import build_graph
 from chatbot.state import ChatState, ChatMessage
+from chatbot.globals import uploaded_file_data
 
 # Make sure OpenAI API key is set
 if "OPENAI_API_KEY" not in os.environ:
@@ -14,12 +15,10 @@ graph = build_graph()
 
 # Initialize chat history for Gradio
 chat_history = []
-# Global variable to store the uploaded file data
-uploaded_file_data = None
 
 def process_excel(file):
     """Process the uploaded Excel file and return a summary."""
-    global uploaded_file_data
+    import chatbot.globals as globals
     
     if file is None:
         return "No file uploaded."
@@ -29,7 +28,7 @@ def process_excel(file):
         df = pd.read_excel(file.name)
         
         # Store the dataframe for later use
-        uploaded_file_data = df
+        globals.uploaded_file_data = df
         
         # Generate a summary of the Excel file
         num_rows, num_cols = df.shape
@@ -49,7 +48,7 @@ def process_excel(file):
         return f"Error processing Excel file: {str(e)}"
 
 def respond(message, history, file=None):
-    global uploaded_file_data
+    import chatbot.globals as globals
     
     # Process file if uploaded
     file_info = ""
@@ -104,7 +103,7 @@ demo = gr.ChatInterface(
     fn=respond,
     chatbot=gr.Chatbot(height=600, type="messages"),  # Add this parameter
     title="Excel Settlement Calculator Assistant",
-    description="Ask me about Excel formulas, settlement calculations, or financial spreadsheets!",
+    description="Ask me about Excel formulas, settlement calculations, or financial spreadsheets! You can also upload an Excel file for analysis.",
     examples=[
         # Format: [message, file]
         ["How do I calculate a pro-rata settlement distribution in Excel?", None],
