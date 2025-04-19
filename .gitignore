@@ -1,3 +1,4 @@
 .aider*
 langgraph_chatbot/.venv
 langgraph_chatbot/chatbot/__pycache__
+langgraph_chatbot/.gradio
