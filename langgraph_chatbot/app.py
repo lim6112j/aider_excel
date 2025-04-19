@@ -3,7 +3,6 @@ import gradio as gr
 import pandas as pd
 from chatbot.graph import build_graph
 from chatbot.state import ChatState, ChatMessage
-from chatbot.globals import uploaded_file_data
 
 # Make sure OpenAI API key is set
 if "OPENAI_API_KEY" not in os.environ:
@@ -18,17 +17,12 @@ chat_history = []
 
 def process_excel(file):
     """Process the uploaded Excel file and return a summary."""
-    import chatbot.globals as globals
-    
     if file is None:
-        return "No file uploaded."
+        return "No file uploaded.", None
     
     try:
         # Read the Excel file
         df = pd.read_excel(file.name)
-        
-        # Store the dataframe for later use
-        globals.uploaded_file_data = df
         
         # Generate a summary of the Excel file
         num_rows, num_cols = df.shape
@@ -42,18 +36,17 @@ def process_excel(file):
         summary += "Preview of the data:\n"
         summary += df.head(5).to_string()
         
-        return summary
+        return summary, df
     
     except Exception as e:
-        return f"Error processing Excel file: {str(e)}"
+        return f"Error processing Excel file: {str(e)}", None
 
 def respond(message, history, file=None):
-    import chatbot.globals as globals
-    
     # Process file if uploaded
     file_info = ""
+    df = None
     if file is not None:
-        file_info = process_excel(file)
+        file_info, df = process_excel(file)
         # Add file information to the message
         message = f"{message}\n\nI've uploaded an Excel file with the following information:\n{file_info}"
     
@@ -78,7 +71,7 @@ def respond(message, history, file=None):
     messages.append(ChatMessage(role="user", content=message))
     
     # Create state and invoke graph
-    current_state = ChatState(messages=messages)
+    current_state = ChatState(messages=messages, uploaded_file_data=df)
     result = graph.invoke(current_state)
     
     # Extract response

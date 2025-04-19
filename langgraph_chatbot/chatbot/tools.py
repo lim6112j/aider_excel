@@ -11,9 +11,10 @@ class ExcelAnalysisTool(BaseTool):
     Input should be a specific analysis request related to the uploaded Excel file.
     """
     
-    def _run(self, query: str) -> str:
+    def _run(self, query: str, **kwargs) -> str:
         """Execute the Excel analysis based on the query."""
-        from .globals import uploaded_file_data
+        # Get uploaded_file_data from the state passed in kwargs
+        uploaded_file_data = kwargs.get("uploaded_file_data")
         
         if uploaded_file_data is None:
             return "No Excel file has been uploaded. Please upload a file first."

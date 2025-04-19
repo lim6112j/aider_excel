@@ -1,2 +1,2 @@
-# Global variables shared across modules
-uploaded_file_data = None
+# This file is no longer needed as we've moved the state to ChatState
+# Keeping this file empty for backward compatibility

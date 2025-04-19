@@ -3,16 +3,25 @@ from langchain.agents import AgentExecutor, create_openai_functions_agent
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from .state import ChatState, ChatMessage
 from .tools import ExcelAnalysisTool, ExcelFormulaTool
-
-# Initialize tools
-excel_analysis_tool = ExcelAnalysisTool()
-excel_formula_tool = ExcelFormulaTool()
-tools = [excel_analysis_tool, excel_formula_tool]
+from functools import partial
 
 def chatbot_node(state: ChatState) -> ChatState:
     """Process the messages and generate a response."""
     # Initialize the LLM
     llm = ChatOpenAI(temperature=0.7)
+    
+    # Initialize tools with access to state data
+    excel_analysis_tool = ExcelAnalysisTool()
+    excel_formula_tool = ExcelFormulaTool()
+    
+    # Create partial functions that include the uploaded_file_data
+    excel_analysis_with_data = partial(
+        excel_analysis_tool._run,
+        uploaded_file_data=state.uploaded_file_data
+    )
+    excel_analysis_tool._run = excel_analysis_with_data
+    
+    tools = [excel_analysis_tool, excel_formula_tool]
     
     # Define system prompt for Excel professional
     system_prompt = """You are an Excel professional who specializes in calculating settlements.
