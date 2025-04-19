@@ -90,6 +90,8 @@ class SettlementState(TypedDict):
     conversation_history: List[Dict]
     selected_tool: str
     chatbot_response: str
+    policy_sheet: str  # New field
+    sales_sheet: str   # New field
     policy_df: pd.DataFrame
     sales_df: pd.DataFrame
     start_date: str
@@ -144,30 +146,57 @@ def chatbot(state: SettlementState) -> SettlementState:
             'error': f"Error in chatbot: {str(e)}"
         }
 
-# Data parsing
-
-
-def parse_data(state: SettlementState) -> SettlementState:
+# Sheet identification
+def identify_sheets(state: SettlementState) -> SettlementState:
     if state['error']:
         return state
     try:
         # Read Excel file
         excel_file = pd.ExcelFile(state['excel_file_path'])
         sheets = excel_file.sheet_names
-
-        # Identify policy and sales sheets
-        policy_df = None
-        sales_df = None
+        
+        # Initialize variables to store sheet names
+        policy_sheet = None
+        sales_sheet = None
+        
+        # Check each sheet to identify policy and sales sheets
         for sheet in sheets:
-            df = pd.read_excel(state['excel_file_path'], sheet_name=sheet)
-            if '처리일' in df.columns and df['처리일'].notna().any():
-                sales_df = df
-            elif '번들결합분류' in df.columns and df['번들결합분류'].notna().any():
-                policy_df = df
+            # Read a sample of the sheet to check columns
+            df_sample = pd.read_excel(state['excel_file_path'], sheet_name=sheet, nrows=5)
+            
+            # Check for policy sheet indicators
+            if '번들결합분류' in df_sample.columns:
+                policy_sheet = sheet
+            
+            # Check for sales sheet indicators
+            if '처리일' in df_sample.columns:
+                sales_sheet = sheet
+        
+        if policy_sheet is None:
+            return {**state, 'error': "Could not identify policy sheet. Ensure a sheet contains '번들결합분류' column."}
+        
+        if sales_sheet is None:
+            return {**state, 'error': "Could not identify sales sheet. Ensure a sheet contains '처리일' column."}
+        
+        # Update state with identified sheets
+        return {
+            **state, 
+            'policy_sheet': policy_sheet,
+            'sales_sheet': sales_sheet,
+            'error': ''
+        }
+    except Exception as e:
+        logger.error(f"Sheet identification error: {str(e)}")
+        return {**state, 'error': f"Error identifying sheets: {str(e)}"}
 
-        if policy_df is None or sales_df is None:
-            raise ValueError(
-                "Could not identify policy or sales sheet. Ensure sheets contain '번들결합분류' (policy) and '처리일' (sales).")
+# Data parsing
+def parse_data(state: SettlementState) -> SettlementState:
+    if state['error']:
+        return state
+    try:
+        # Read identified sheets
+        policy_df = pd.read_excel(state['excel_file_path'], sheet_name=state['policy_sheet'])
+        sales_df = pd.read_excel(state['excel_file_path'], sheet_name=state['sales_sheet'])
 
         # Clean data
         policy_df = policy_df.dropna(how='all').fillna(
@@ -323,6 +352,7 @@ def aggregate_results(state: SettlementState) -> SettlementState:
 # Build LangGraph workflow
 workflow = StateGraph(SettlementState)
 workflow.add_node("chatbot", chatbot)
+workflow.add_node("identify_sheets", identify_sheets)  # Add new node
 workflow.add_node("parse_data", parse_data)
 workflow.add_node("filter_data", filter_data)
 workflow.add_node("calculate_settlements", calculate_settlements)
@@ -332,12 +362,13 @@ workflow.add_node("aggregate_results", aggregate_results)
 
 workflow.add_conditional_edges(
     "chatbot",
-    lambda state: "parse_data" if state['selected_tool'] else "chatbot",
+    lambda state: "identify_sheets" if state['selected_tool'] else "chatbot",
     {
-        "parse_data": "parse_data",
+        "identify_sheets": "identify_sheets",
         "chatbot": "chatbot"
     }
 )
+workflow.add_edge("identify_sheets", "parse_data")  # Add edge from identify_sheets to parse_data
 workflow.add_conditional_edges(
     "parse_data",
     lambda state: state['selected_tool'],
