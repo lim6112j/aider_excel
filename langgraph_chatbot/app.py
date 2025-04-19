@@ -102,6 +102,7 @@ def respond(message, history, file=None):
 # Create Gradio interface with ChatInterface
 demo = gr.ChatInterface(
     fn=respond,
+    chatbot=gr.Chatbot(height=600, type="messages"),  # Add this parameter
     title="Excel Settlement Calculator Assistant",
     description="Ask me about Excel formulas, settlement calculations, or financial spreadsheets!",
     examples=[
